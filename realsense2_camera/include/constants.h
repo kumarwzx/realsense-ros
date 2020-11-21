@@ -62,6 +62,7 @@ namespace realsense2_camera
     const bool ENABLE_COLOR   = true;
     const bool ENABLE_FISHEYE = true;
     const bool ENABLE_IMU     = true;
+    const bool ENABLE_EMITTER = true;
     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
     const bool PUBLISH_ODOM_TF = true;
 

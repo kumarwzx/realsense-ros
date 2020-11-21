@@ -225,10 +225,12 @@ namespace realsense2_camera
         bool getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile);
 
         void publishAlignedDepthToOthers(rs2::frameset frames, const ros::Time& t);
+        sensor_msgs::Imu KumarCreateUnitedMessage(const CimuData accel_data, const CimuData gyro_data);
         sensor_msgs::Imu CreateUnitedMessage(const CimuData accel_data, const CimuData gyro_data);
 
         void FillImuData_Copy(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs);
         void ImuMessage_AddDefaultValues(sensor_msgs::Imu& imu_msg);
+        void Kumar_LinearInterpolation(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs);
         void FillImuData_LinearInterpolation(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs);
         void imu_callback(rs2::frame frame);
         void imu_callback_sync(rs2::frame frame, imu_sync_method sync_method=imu_sync_method::COPY);
@@ -259,6 +261,7 @@ namespace realsense2_camera
         double _linear_accel_cov;
         double _angular_velocity_cov;
         bool  _hold_back_imu_for_frames;
+        bool _enable_emitter;
 
         std::map<stream_index_pair, rs2_intrinsics> _stream_intrinsics;
         std::map<stream_index_pair, int> _width;

@@ -211,7 +211,9 @@ void BaseRealSenseNode::setupErrorCallback()
         s.set_notifications_callback([&](const rs2::notification& n)
         {
             std::vector<std::string> error_strings({"RT IC2 Config error",
-                                                    "Left IC2 Config error"});
+                                                    "Left IC2 Config error",
+                                                    "Motion Module force pause",
+                                                    "stream start failure"});
             if (n.get_severity() >= RS2_LOG_SEVERITY_ERROR)
             {
                 ROS_WARN_STREAM("Hardware Notification:" << n.get_description() << "," << n.get_timestamp() << "," << n.get_severity() << "," << n.get_category());
@@ -702,6 +704,7 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("linear_accel_cov", _linear_accel_cov, static_cast<double>(0.01));
     _pnh.param("angular_velocity_cov", _angular_velocity_cov, static_cast<double>(0.01));
     _pnh.param("hold_back_imu_for_frames", _hold_back_imu_for_frames, HOLD_BACK_IMU_FOR_FRAMES);
+    _pnh.param("enable_emitter", _enable_emitter, ENABLE_EMITTER);
     _pnh.param("publish_odom_tf", _publish_odom_tf, PUBLISH_ODOM_TF);
 }
 
@@ -795,6 +798,12 @@ void BaseRealSenseNode::setupDevice()
             }
 
             std::string module_name = sensor.get_info(RS2_CAMERA_INFO_NAME);
+
+            if (sensor.supports(RS2_OPTION_EMITTER_ENABLED)) 
+            {
+              sensor.set_option(RS2_OPTION_EMITTER_ENABLED, _enable_emitter);
+            }
+
             if (sensor.is<rs2::depth_sensor>())
             {
                 _sensors_callback[module_name] = frame_callback_function;
@@ -1237,6 +1246,24 @@ void BaseRealSenseNode::clip_depth(rs2::depth_frame depth_frame, float clipping_
     }
 }
 
+// Convert the coordinate to (E N Top) Navigation Coordinate for D400 series.
+sensor_msgs::Imu BaseRealSenseNode::KumarCreateUnitedMessage(const CimuData accel_data, const CimuData gyro_data)
+{
+    sensor_msgs::Imu imu_msg;
+    ros::Time t(gyro_data.m_time);
+    imu_msg.header.seq = 0;
+    imu_msg.header.stamp = t;
+
+    imu_msg.angular_velocity.x = gyro_data.m_data.z();
+    imu_msg.angular_velocity.y = -gyro_data.m_data.x();
+    imu_msg.angular_velocity.z = -gyro_data.m_data.y();
+
+    imu_msg.linear_acceleration.x = accel_data.m_data.z();
+    imu_msg.linear_acceleration.y = -accel_data.m_data.x();
+    imu_msg.linear_acceleration.z = -accel_data.m_data.y();
+    return imu_msg;
+}
+
 sensor_msgs::Imu BaseRealSenseNode::CreateUnitedMessage(const CimuData accel_data, const CimuData gyro_data)
 {
     sensor_msgs::Imu imu_msg;
@@ -1256,6 +1283,47 @@ sensor_msgs::Imu BaseRealSenseNode::CreateUnitedMessage(const CimuData accel_dat
 
 template <typename T> T lerp(const T &a, const T &b, const double t) {
   return a * (1.0 - t) + b * t;
+}
+
+// TODO: interpolation gyr according acc. gyr 400hz // acc 250hz 
+void BaseRealSenseNode::Kumar_LinearInterpolation(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs)
+{
+    static bool earlyer_gyr_indicate = false;
+    static bool mid_acc_indicate = false;
+    static CimuData earlyer_gyr;
+    static CimuData mid_acc;
+
+    imu_msgs.clear();
+
+    if(earlyer_gyr_indicate && mid_acc_indicate && imu_data.m_type == GYRO)
+    {
+        earlyer_gyr_indicate = true;
+        mid_acc_indicate = false;
+
+        double dt = imu_data.m_time - earlyer_gyr.m_time;
+        assert(dt>0.0);
+        const double alpha = (mid_acc.m_time - earlyer_gyr.m_time) / dt;
+        CimuData crnt_gyr(ACCEL, lerp(earlyer_gyr.m_data, imu_data.m_data, alpha), mid_acc.m_time);
+        imu_msgs.push_back(KumarCreateUnitedMessage(mid_acc, crnt_gyr));
+
+        earlyer_gyr = imu_data;
+
+        
+    }else if(imu_data.m_type == GYRO)
+    {
+        earlyer_gyr_indicate = true;
+        mid_acc_indicate = false;
+        earlyer_gyr = imu_data;
+    }else if(earlyer_gyr_indicate && imu_data.m_type == ACCEL)
+    {
+        mid_acc_indicate = true;
+        mid_acc = imu_data;
+    }else if(!earlyer_gyr_indicate && imu_data.m_type == ACCEL)
+    {
+        mid_acc_indicate = false;
+    }
+    
+    return;
 }
 
 void BaseRealSenseNode::FillImuData_LinearInterpolation(const CimuData imu_data, std::deque<sensor_msgs::Imu>& imu_msgs)
@@ -1349,7 +1417,7 @@ void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync
         setBaseTime(frame_time, RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME == frame.get_frame_timestamp_domain());
     }
 
-    seq += 1;
+    //seq += 1;
     double elapsed_camera_ms = (/*ms*/ frame_time - /*ms*/ _camera_time_base) / 1000.0;
 
     if (0 != _synced_imu_publisher->getNumSubscribers())
@@ -1365,11 +1433,13 @@ void BaseRealSenseNode::imu_callback_sync(rs2::frame frame, imu_sync_method sync
                 FillImuData_Copy(imu_data, imu_msgs);
                 break;
             case LINEAR_INTERPOLATION:
-                FillImuData_LinearInterpolation(imu_data, imu_msgs);
+                Kumar_LinearInterpolation(imu_data, imu_msgs);    //FillImuData_LinearInterpolation(imu_data, imu_msgs);
+                //FillImuData_LinearInterpolation(imu_data, imu_msgs);
                 break;
         }
         while (imu_msgs.size())
         {
+            seq += 1;
             sensor_msgs::Imu imu_msg = imu_msgs.front();
             ros::Time t(_ros_time_base.toSec() + imu_msg.header.stamp.toSec());
             imu_msg.header.seq = seq;
@@ -1542,6 +1612,7 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
         if (_sync_frames)
         {
             t = ros::Time::now();
+            ROS_WARN("The driver is using ros::Time::nos() to timestamp the images! Turn off enable_sync!");
         }
         else
         {
