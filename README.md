@@ -1,3 +1,21 @@
+# Use the new interpolation method for imu streams and fix the imu frozen problem.
+
+Adding the /camera/imu topic and providing 250Hz syn data by linear interpolation for realsense D400 series.
+
+## Usage
+
+### Clone
+
+```bash
+mkdir -p catkin_ws/src && cd catkin_ws/src
+catkin_init_workspace
+git clone https://github.com/kumarwzx/realsense-ros.git
+cd ..
+catkin_make -j4
+
+roslaunch realsense2_camera rs_maplab.launch
+```
+
 # ROS Wrapper for Intel&reg; RealSense&trade; Devices
 These are packages for using Intel RealSense cameras (D400 series SR300 camera and T265 Tracking Module) with ROS.
 
