@@ -266,7 +266,7 @@ void RealSenseNodeFactory::onInit()
 		privateNh.param("serial_no", _serial_no, std::string(""));
     	privateNh.param("usb_port_id", _usb_port_id, std::string(""));
     	privateNh.param("device_type", _device_type, std::string(""));
-    toggle_sensor_srv = nh.advertiseService("enable", &RealSenseNodeFactory::toggle_sensor_callback, this);
+    	toggle_sensor_srv = nh.advertiseService("enable", &RealSenseNodeFactory::toggle_sensor_callback, this);
 		std::string rosbag_filename("");
 		privateNh.param("rosbag_filename", rosbag_filename, std::string(""));
 

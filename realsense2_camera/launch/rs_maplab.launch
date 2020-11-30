@@ -35,14 +35,14 @@
   <arg name="pointcloud_texture_index" default="0"/>
 
   <arg name="enable_sync" default="false"/>
-  <arg name="align_depth" default="false"/>
+  <arg name="align_depth" default="true"/>
 
   <arg name="filters" default=""/>
   <arg name="clip_distance" default="-2"/>
   <arg name="linear_accel_cov" default="0.01"/>
-  <arg name="initial_reset" default="true"/>
+  <arg name="initial_reset" default="false"/>
   <arg name="unite_imu_method" default="linear_interpolation"/>
-  <arg name="enable_emitter" default="false"/>
+  <!--arg name="enable_emitter" default="false"-->
   <arg name="base_frame_id" default="imu"/>
 
   <group ns="$(arg camera)">
@@ -89,7 +89,7 @@
       <arg name="initial_reset" value="$(arg initial_reset)"/>
       <arg name="unite_imu_method" value="$(arg unite_imu_method)"/>
       <arg name="base_frame_id" value="$(arg base_frame_id)"/>
-      <arg name="enable_emitter" default="$(arg enable_emitter)"/>
+      <!--arg name="enable_emitter" default="$(arg enable_emitter)"-->
     </include>
   </group>
 </launch>

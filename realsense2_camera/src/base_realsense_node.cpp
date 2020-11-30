@@ -704,7 +704,7 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("linear_accel_cov", _linear_accel_cov, static_cast<double>(0.01));
     _pnh.param("angular_velocity_cov", _angular_velocity_cov, static_cast<double>(0.01));
     _pnh.param("hold_back_imu_for_frames", _hold_back_imu_for_frames, HOLD_BACK_IMU_FOR_FRAMES);
-    _pnh.param("enable_emitter", _enable_emitter, ENABLE_EMITTER);
+    //_pnh.param("enable_emitter", _enable_emitter, ENABLE_EMITTER);
     _pnh.param("publish_odom_tf", _publish_odom_tf, PUBLISH_ODOM_TF);
 }
 
@@ -799,10 +799,10 @@ void BaseRealSenseNode::setupDevice()
 
             std::string module_name = sensor.get_info(RS2_CAMERA_INFO_NAME);
 
-            if (sensor.supports(RS2_OPTION_EMITTER_ENABLED)) 
-            {
-              sensor.set_option(RS2_OPTION_EMITTER_ENABLED, _enable_emitter);
-            }
+            // if (sensor.supports(RS2_OPTION_EMITTER_ENABLED)) 
+            // {
+            //   sensor.set_option(RS2_OPTION_EMITTER_ENABLED, _enable_emitter);
+            // }
 
             if (sensor.is<rs2::depth_sensor>())
             {
@@ -1305,6 +1305,7 @@ void BaseRealSenseNode::Kumar_LinearInterpolation(const CimuData imu_data, std::
         const double alpha = (mid_acc.m_time - earlyer_gyr.m_time) / dt;
         CimuData crnt_gyr(ACCEL, lerp(earlyer_gyr.m_data, imu_data.m_data, alpha), mid_acc.m_time);
         imu_msgs.push_back(KumarCreateUnitedMessage(mid_acc, crnt_gyr));
+        //imu_msgs.push_back(CreateUnitedMessage(mid_acc, crnt_gyr));
 
         earlyer_gyr = imu_data;
 
@@ -1612,7 +1613,7 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
         if (_sync_frames)
         {
             t = ros::Time::now();
-            ROS_WARN("The driver is using ros::Time::nos() to timestamp the images! Turn off enable_sync!");
+            //ROS_WARN("The driver is using ros::Time::ros() to timestamp the images! Turn off enable_sync!");
         }
         else
         {

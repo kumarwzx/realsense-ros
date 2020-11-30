@@ -14,8 +14,8 @@ https://github.com/IntelRealSense/librealsense/blob/master/third-party/libtm/lib
 
   <arg name="fisheye_width"       default="848"/> 
   <arg name="fisheye_height"      default="800"/>
-  <arg name="enable_fisheye1"     default="false"/>
-  <arg name="enable_fisheye2"     default="false"/>
+  <arg name="enable_fisheye1"     default="true"/>
+  <arg name="enable_fisheye2"     default="true"/>
 
   <arg name="fisheye_fps"         default="30"/>
 
@@ -29,7 +29,7 @@ https://github.com/IntelRealSense/librealsense/blob/master/third-party/libtm/lib
 
   <arg name="linear_accel_cov"      default="0.01"/>
   <arg name="initial_reset"         default="false"/>
-  <arg name="unite_imu_method"      default=""/>
+  <arg name="unite_imu_method"      default="copy"/>
 
   <arg name="publish_odom_tf"     default="true"/>
   

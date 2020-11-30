@@ -261,7 +261,7 @@ namespace realsense2_camera
         double _linear_accel_cov;
         double _angular_velocity_cov;
         bool  _hold_back_imu_for_frames;
-        bool _enable_emitter;
+        //bool _enable_emitter;
 
         std::map<stream_index_pair, rs2_intrinsics> _stream_intrinsics;
         std::map<stream_index_pair, int> _width;
